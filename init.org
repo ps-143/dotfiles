@@ -1,0 +1,509 @@
+#+title: Emacs Config
+#+PROPERTY: header-args:emacs-lisp :tangle ./init-new.el
+
+* Package System
+  Emacs has a buil in package manager but it doesn't make it easy to automatically install packages on a new
+  system the first time you pull down your configuration. So we use =use-package=.
+  
+  #+begin_src emacs-lisp
+    ;; Initialize package sources
+    (require 'package)
+
+    (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                             ("org" . "https://orgmode.org/elpa/")
+                             ("elpa" . "https://elpa.gnu.org/packages/")))
+
+    (package-initialize)
+    (unless package-archive-contents
+      (package-refresh-contents))
+
+      ;; Initialize use-package on non-Linux platforms
+    (unless (package-installed-p 'use-package)
+      (package-install 'use-package))
+
+    (require 'use-package)
+    (setq use-package-always-ensure t)
+  #+end_src
+
+* Keep Folders Clean
+
+We use the [[https://github.com/emacscollective/no-littering/blob/master/no-littering.el][no-littering]] package to keep folders where we edit files
+and the Emacs configuration folder clean! It knows about a wide
+variety of variables for built in Emacs features as well as those
+from community packages so it can be much easier than finding and
+setting variables yourself.
+
+#+begin_src emacs-lisp
+  ;; NOTE: If you want to move everything out of the ~/.emacs.d folder
+  ;; reliably, set `user-emacs-directory` before loading no-littering!
+  ;(setq user-emacs-directory "~/.cache/emacs")
+
+  (use-package no-littering)
+
+  ;; no-littering doesn't set this by default so we must place
+  ;; auto save files in the same path as it uses for sessions
+  (setq auto-save-file-name-transforms
+        `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
+#+end_src
+
+* Basic UI Configuration
+** Better defaults
+
+#+begin_src emacs-lisp
+  (setq-default
+   inhibit-startup-message t
+   initial-scratch-message ""
+   visible-bell t
+   gc-cons-threshold (* 100 1024 1024)
+   read-process-output-max (* 1024 1024))
+
+  (scroll-bar-mode -1)		; Disable visible scrollbar
+  (tool-bar-mode -1)		; Disable toolbar
+  (tooltip-mode -1)
+  (menu-bar-mode -1)
+  (set-fringe-mode 12)
+  (blink-cursor-mode 0)
+  (delete-selection-mode +1)
+  (electric-pair-mode 1)
+  (show-paren-mode 1)
+
+  ;; Line Numbers
+  (column-number-mode)
+  (global-hl-line-mode)
+  (global-display-line-numbers-mode t)
+  (dolist (mode '(org-mode-hook
+                  term-mode-hook
+                  shell-mode-hook
+                  vterm-mode-hook
+                  treemacs-mode-hook
+                  pdf-view-mode-hook
+                  eshell-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+#+end_src
+
+** Font Configuration
+
+#+begin_src emacs-lisp
+  (defvar ps/default-font-size 110)
+  (defvar ps/default-variable-font-size 110)
+
+  (set-face-attribute 'default nil :font "Fira Code" :height ps/default-font-size)
+
+  ;; Set the fixed pitch face
+  (set-face-attribute 'fixed-pitch nil :font "Fira Code" :height ps/default-font-size)
+
+  ;; Set the variable pitch face
+  (set-face-attribute 'variable-pitch nil :font "Cantarell" :height ps/default-variable-font-size :weight 'regular)
+#+end_src
+
+** Subtly flash modeline for visual bell
+
+#+begin_src emacs-lisp
+  (setq ring-bell-function
+        (lambda ()
+          (let ((orig-fg (face-foreground 'mode-line)))
+            (set-face-foreground 'mode-line "#F2804F")
+            (run-with-idle-timer 0.1 nil
+                                 (lambda (fg) (set-face-foreground 'mode-line fg))
+                                 orig-fg))))
+#+end_src
+
+* UI Configuration
+** Theme
+
+[[https://github.com/hlissner/emacs-doom-themes][doom-themes]] is a great set of themes with a lot of variety and
+support for many different Emacs modes.
+Use =M-x counsel-load-theme= to choose between them easily.
+
+#+begin_src emacs-lisp
+  (use-package doom-themes
+    :init (load-theme 'doom-palenight t))
+#+end_src
+
+** Modeline
+
+[[https://github.com/seagle0128/doom-modeline][doom-modeline]] is an awesome modeline to use for emacs
+
+#+begin_src emacs-lisp
+  (use-package all-the-icons)
+
+  (use-package doom-modeline
+    :init (doom-modeline-mode 1)
+    :custom ((doom-modeline-height 15)))
+#+end_src
+
+** Rainbow delimiters
+
+Coloured brackets
+
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+    :hook
+    (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+** Which-Key
+
+[[https://github.com/justbur/emacs-which-key][which-key]] is the *Saviour* when I forget the keybindings, which
+happens a lot.
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :init (which-key-mode)
+    :diminish which-key-mode
+    :config
+    (setq which-key-idle-delay 1))
+#+end_src
+
+** Ivy and Counsel
+
+[[https://oremacs.com/swiper/][Ivy]] is an excellent completion frameword for Emacs.
+Councel is a customized set of commands to replace 'find-file' with
+'counsel-find-file', etc.
+
+[[https://github.com/Yevgnen/ivy-rich][ivy-rich]] adds extra columns to a few of the Counsel commands to
+provide more information about each item.
+
+#+begin_src emacs-lisp
+  (use-package ivy
+    :diminish
+    :bind (("C-s" . swiper)
+           :map ivy-minibuffer-map
+           ("TAB" . ivy-alt-done)
+           ("C-l" . ivy-alt-done))
+    :config
+    (ivy-mode 1))
+
+  (use-package ivy-rich
+    :init
+    (ivy-rich-mode 1))
+
+  (use-package counsel
+    :bind (("C-M-j" . 'counsel-switch-buffer)
+           :map minibuffer-local-map
+           ("C-r" . 'counsel-minibuffer-history))
+    :custom
+    (counsel-linux-app-format-function #'counsel-linux-app-format-function-name-only)
+    :config
+    (counsel-mode 1))
+#+end_src
+
+*** Improved Candidate Sorting with prescient.el
+
+[[https://github.com/raxod502/prescient.el][prescient.el]] provides some helpful behavior for sorting Ivy
+completion candidates based on how recently or frequently you
+select them. This can be especially helpful when using =M-x= to run
+commands.
+
+#+begin_src emacs-lisp
+  (use-package ivy-prescient
+    :after counsel
+    :custom
+    (ivy-prescient-enable-filtering nil)
+    :config
+    ;; Uncomment the following line to have sorting remembered across sessions!
+    (prescient-persist-mode 1)
+    (ivy-prescient-mode 1))
+#+end_src
+
+** Helpful Help Commands
+[[https://github.com/Wilfred/helpful][
+Helpful]] adds a lot of very helpful information to Emacs'
+=describe-= command buffers.
+
+#+begin_src emacs-lisp
+  (use-package helpful
+    :custom
+    (counsel-describe-function-function #'helpful-callable)
+    (counsel-describe-variable-function #'helpful-variable)
+    :bind
+    ([remap describe-function] . counsel-describe-function)
+    ([remap describe-command] . helpful-command)
+    ([remap describe-variable] . counsel-describe-variable)
+    ([remap describe-key] . helpful-key))
+#+end_src
+
+** Emojify
+
+Use *emojis* in Emacs!!!! :smiley:
+
+#+begin_src emacs-lisp
+  (use-package emojify
+    :hook (after-init . global-emojify-mode))
+#+end_src
+
+** Indent guide
+
+[[https://github.com/DarthFennec/highlight-indent-guides][highlight-indent-guides]] minor mode highlights indentation levels via
+=font lock=. Indent levels are dinamically discovered, which means this
+correctly highlights in any mod, regardless of inner width, even in
+languages with non-uniform indentations such as Haskell. By default,
+this mode also inspects the theme dynamically, and automatically
+chooses the appropriate colors for highlighting. This mode works
+properly around hard tabs and mixed indentations, and behaves well in
+large buffers.
+
+#+begin_src emacs-lisp
+  (use-package highlight-indent-guides
+    :hook (prog-mode . highlight-indent-guides-mode)
+    :custom
+    (highlight-indent-guides-responsive 'stack)
+    (highlight-indent-guides-method 'character))
+#+end_src
+* Org Mode
+
+Org Mode(/go search/) is one of the hallmark features of Emacs. It
+is a rich document editor, project planner, task and time tracker,
+blogging engine, and literate coding utility all wrapped up in one
+package.
+
+** Better Fonts
+
+The following function configures various text faces to tweak the
+sizes of headings and use variable width fonts in most cases so
+that is looks more like we're editing a document in =org-mode=. We
+switch back to fixed width (monospace) fonts for blocks and tables
+so that they display correctly.
+
+#+begin_src emacs-lisp
+  (defun ps/org-font-setup ()
+    ;; Replace list hyphen with dot
+    (font-lock-add-keywords 'org-mode
+                            '(("^ *\\([-]\\) "
+                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+    ;; Set faces for heading levels
+    (dolist (face '((org-level-1 . 1.728)
+                    (org-level-2 . 1.44)
+                    (org-level-3 . 1.2)
+                    (org-level-4 . 1.1)
+                    (org-level-5 . 1.1)
+                    (org-level-6 . 1.1)
+                    (org-level-7 . 1.1)
+                    (org-level-8 . 1.1)))
+      (set-face-attribute (car face) nil :font "Cantarell" :weight 'bold :height (cdr face)))
+
+    ;; Ensure that anything that should be fixed-pitch in Org files appears that way
+    (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch)
+    (set-face-attribute 'org-table nil    :inherit 'fixed-pitch)
+    (set-face-attribute 'org-formula nil  :inherit 'fixed-pitch)
+    (set-face-attribute 'org-code nil     :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-table nil    :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-checkbox nil  :inherit 'fixed-pitch)
+    (set-face-attribute 'line-number nil :inherit 'fixed-pitch)
+    (set-face-attribute 'line-number-current-line nil :inherit 'fixed-pitch))
+#+end_src
+
+** Basic config
+
+#+begin_src emacs-lisp
+  (defun ps/org-mode-setup ()
+    (org-indent-mode)
+    (variable-pitch-mode 1)
+    (visual-line-mode 1)
+    (auto-fill-mode 1))
+
+  (use-package org
+    :pin org
+    :hook (org-mode . ps/org-mode-setup)
+    :config
+    (ps/org-font-setup)
+    :custom
+    (org-hide-emphasis-markers t))
+#+end_src
+
+** Center Org Buffers
+
+#+begin_src emacs-lisp
+  (defun ps/org-mode-visual-fill ()
+    (setq visual-fill-column-width 100
+          visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
+
+  (use-package visual-fill-column
+    :hook (org-mode . ps/org-mode-visual-fill))
+#+end_src
+
+** Structure Templates
+
+Org Mode's [[https://orgmode.org/manual/Structure-Templates.html][structure templates]] feature enables you to quickly
+insert code blocks into your Org files in combination with
+=org-tempo= by typing =<= followed by the template name.
+
+ #+begin_src emacs-lisp
+   ;; This is needed as of Org 9.2
+   (require 'org-tempo)
+
+   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+   (add-to-list 'org-structure-template-alist '("py" . "src python"))
+ #+end_src
+
+** Nicer Heading bullets
+[[https://github.com/integral-dw/org-superstar-mode][
+ org-superstar]]  replaces the heading starts with nicer looking characters
+that you can controll.
+
+#+begin_src emacs-lisp
+  (use-package org-superstar
+    :hook (org-mode . org-superstar-mode))
+#+end_src
+
+* Programming
+** lsp-mode
+
+[[https://emacs-lsp.github.io/lsp-mode/][lsp-mode]] provieds IDE-like functionality for many different
+programming languages via "lanugage servers" that speak the language
+server protocol.
+
+#+begin_src emacs-lisp
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :init
+    (setq lsp-keymap-prefix "C-c l")  ;; Or 'C-l', 's-l'
+    :config
+    (lsp-enable-which-key-integration t))
+#+end_src
+
+** lsp-ui
+
+#+begin_src emacs-lisp
+  (use-package lsp-ui
+    :hook (lsp-mode . lsp-ui-mode)
+    :custom
+    (lsp-ui-doc-position 'bottom))
+#+end_src
+
+** lsp-ivy
+
+[[https://github.com/emacs-lsp/lsp-ivy][lsp-ivy]] integrates Ivy with =lsp-mode= to make it easy to search for
+things by name in your code.
+Try these commands with =M-x=:
+- =lsp-ivy-workspace-symbol= - Search for a symbol name in the current
+  project workspace
+- =lsp-ivy-global-workspace-symbol= - Search for a symbol name in all
+  active project workspaces
+
+#+begin_src emacs-lisp
+  (use-package lsp-ivy)
+#+end_src
+
+** Flycheck
+
+*Flycheck* is a modern on-the-fly syntax checking extension for GNU
+Emacs, intended as replacement for the older Flymake extension which
+is part of GNU Emacs.
+
+#+begin_src emacs-lisp
+  (use-package flycheck
+    :ensure t
+    :init (global-flycheck-mode))
+#+end_src
+
+** Company Mode
+
+[[http://company-mode.github.io/][Company Mode]] provides a nicer in-buffer completion interface than
+=completion-at-point= which is more reminiscent of what you would expect
+from an IDE.
+
+We also use [[https://github.com/sebastiencs/company-box][company-box]] to further enhance the look of the completions
+with icons and overall presentation.
+
+#+begin_src emacs-lisp
+  (use-package company
+    :after lsp-mode
+    :hook (lsp-mode . company-mode)
+    :bind (:map company-active-map
+           ("<tab>" . company-complete-selection))
+          (:map lsp-mode-map
+           ("<tab>" . company-indent-or-complete-common))
+    :custom
+    (company-minimum-prefix-length 1)
+    (company-idle-delay 0.0))
+
+#+end_src
+
+** Projectile
+
+[[https://projectile.mx/][Projectile]] is a project management library for Emacs which makes it a
+lot easier to navigate around code projects for various languages.
+
+#+begin_src emacs-lisp
+  (use-package projectile
+    :diminish projectile-mode
+    :config (projectile-mode)
+    :custom ((projectile-completion-system 'ivy))
+    :bind-keymap
+    ("C-c p" . projectile-command-map)
+    :init
+    ;; NOTE: Set this to the folder where you keep your Git repos!
+    (when (file-directory-p "~/Programming")
+      (setq projectile-project-search-path '("~/Programming")))
+    (setq projectile-switch-project-action #'projectile-dired))
+
+  (use-package counsel-projectile
+    :config (counsel-projectile-mode))
+#+end_src
+
+** Magit
+
+[[https://magit.vc/][Magit]] is the best Git interface.
+
+#+begin_src emacs-lisp
+  (use-package magit
+    :custom
+    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+  ;; NOTE: Make sure to configure a GitHub token before using this package!
+  ;; - https://magit.vc/manual/forge/Token-Creation.html#Token-Creation
+  ;; - https://magit.vc/manual/ghub/Getting-Started.html#Getting-Started
+  (use-package forge)
+#+end_src
+
+** YASnippet
+
+*YASnippet* is a template system for Emacs. It allows you to type an
+abbreviation and automatically expand it into a function template.
+
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :hook (prog-mode . yas-minor-mode)
+    :bind ("<backtab>" . yas-expand))
+
+  (use-package yasnippet-snippets)
+#+end_src
+
+** TODO Languages
+
+*** C/C++
+
+#+begin_src emacs-lisp
+  (add-hook 'c-mode-hook 'lsp-deferred)
+  (add-hook 'c++-mode-hook 'lsp-deferred)
+#+end_src
+
+* Terminals
+
+
+#+begin_src emacs-lisp
+  (use-package vterm
+    :commands vterm)
+#+end_src
+
+* Pdf-tools
+
+Pdfs work out of box with emacs but we have got something better so
+why not use that. 😍
+
+#+begin_src emacs-lisp
+  (use-package pdf-tools
+    :config
+    (pdf-tools-install))
+
+  (use-package org-pdftools
+    :hook (org-mode . org-pdftools-setup-link))
+#+end_src
+
