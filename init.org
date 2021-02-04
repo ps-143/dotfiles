@@ -1,11 +1,11 @@
 #+title: Emacs Config
-#+PROPERTY: header-args:emacs-lisp :tangle ./init-new.el
+#+PROPERTY: header-args:emacs-lisp :tangle ./init.el
 
 * Package System
   Emacs has a buil in package manager but it doesn't make it easy to automatically install packages on a new
   system the first time you pull down your configuration. So we use =use-package=.
   
-  #+begin_src emacs-lisp
+  #+begin_src emacs-lisp :tangle ./init.el
     ;; Initialize package sources
     (require 'package)
 
@@ -33,7 +33,7 @@ variety of variables for built in Emacs features as well as those
 from community packages so it can be much easier than finding and
 setting variables yourself.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   ;; NOTE: If you want to move everything out of the ~/.emacs.d folder
   ;; reliably, set `user-emacs-directory` before loading no-littering!
   ;(setq user-emacs-directory "~/.cache/emacs")
@@ -49,7 +49,7 @@ setting variables yourself.
 * Basic UI Configuration
 ** Better defaults
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (setq-default
    inhibit-startup-message t
    initial-scratch-message ""
@@ -83,7 +83,7 @@ setting variables yourself.
 
 ** Font Configuration
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (defvar ps/default-font-size 110)
   (defvar ps/default-variable-font-size 110)
 
@@ -98,7 +98,7 @@ setting variables yourself.
 
 ** Subtly flash modeline for visual bell
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (setq ring-bell-function
         (lambda ()
           (let ((orig-fg (face-foreground 'mode-line)))
@@ -115,7 +115,7 @@ setting variables yourself.
 support for many different Emacs modes.
 Use =M-x counsel-load-theme= to choose between them easily.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package doom-themes
     :init (load-theme 'doom-palenight t))
 #+end_src
@@ -124,7 +124,7 @@ Use =M-x counsel-load-theme= to choose between them easily.
 
 [[https://github.com/seagle0128/doom-modeline][doom-modeline]] is an awesome modeline to use for emacs
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package all-the-icons)
 
   (use-package doom-modeline
@@ -132,11 +132,20 @@ Use =M-x counsel-load-theme= to choose between them easily.
     :custom ((doom-modeline-height 15)))
 #+end_src
 
+** Dired icons
+
+Add =all-the-icons= for dired
+
+#+begin_src emacs-lisp :tangle ./init.el
+  (use-package all-the-icons-dired
+    :hook (dired-mode-hook . all-the-icons-dired-mode))
+#+end_src
+
 ** Rainbow delimiters
 
 Coloured brackets
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package rainbow-delimiters
     :hook
     (prog-mode . rainbow-delimiters-mode))
@@ -147,7 +156,7 @@ Coloured brackets
 [[https://github.com/justbur/emacs-which-key][which-key]] is the *Saviour* when I forget the keybindings, which
 happens a lot.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package which-key
     :init (which-key-mode)
     :diminish which-key-mode
@@ -164,7 +173,7 @@ Councel is a customized set of commands to replace 'find-file' with
 [[https://github.com/Yevgnen/ivy-rich][ivy-rich]] adds extra columns to a few of the Counsel commands to
 provide more information about each item.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package ivy
     :diminish
     :bind (("C-s" . swiper)
@@ -195,7 +204,7 @@ completion candidates based on how recently or frequently you
 select them. This can be especially helpful when using =M-x= to run
 commands.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package ivy-prescient
     :after counsel
     :custom
@@ -211,7 +220,7 @@ commands.
 Helpful]] adds a lot of very helpful information to Emacs'
 =describe-= command buffers.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package helpful
     :custom
     (counsel-describe-function-function #'helpful-callable)
@@ -227,7 +236,7 @@ Helpful]] adds a lot of very helpful information to Emacs'
 
 Use *emojis* in Emacs!!!! :smiley:
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package emojify
     :hook (after-init . global-emojify-mode))
 #+end_src
@@ -243,7 +252,7 @@ chooses the appropriate colors for highlighting. This mode works
 properly around hard tabs and mixed indentations, and behaves well in
 large buffers.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package highlight-indent-guides
     :hook (prog-mode . highlight-indent-guides-mode)
     :custom
@@ -265,7 +274,7 @@ that is looks more like we're editing a document in =org-mode=. We
 switch back to fixed width (monospace) fonts for blocks and tables
 so that they display correctly.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (defun ps/org-font-setup ()
     ;; Replace list hyphen with dot
     (font-lock-add-keywords 'org-mode
@@ -299,7 +308,7 @@ so that they display correctly.
 
 ** Basic config
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (defun ps/org-mode-setup ()
     (org-indent-mode)
     (variable-pitch-mode 1)
@@ -317,7 +326,7 @@ so that they display correctly.
 
 ** Center Org Buffers
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (defun ps/org-mode-visual-fill ()
     (setq visual-fill-column-width 100
           visual-fill-column-center-text t)
@@ -333,7 +342,7 @@ Org Mode's [[https://orgmode.org/manual/Structure-Templates.html][structure temp
 insert code blocks into your Org files in combination with
 =org-tempo= by typing =<= followed by the template name.
 
- #+begin_src emacs-lisp
+ #+begin_src emacs-lisp :tangle ./init.el
    ;; This is needed as of Org 9.2
    (require 'org-tempo)
 
@@ -347,7 +356,7 @@ insert code blocks into your Org files in combination with
  org-superstar]]  replaces the heading starts with nicer looking characters
 that you can controll.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package org-superstar
     :hook (org-mode . org-superstar-mode))
 #+end_src
@@ -359,7 +368,7 @@ that you can controll.
 programming languages via "lanugage servers" that speak the language
 server protocol.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package lsp-mode
     :commands (lsp lsp-deferred)
     :init
@@ -370,7 +379,7 @@ server protocol.
 
 ** lsp-ui
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package lsp-ui
     :hook (lsp-mode . lsp-ui-mode)
     :custom
@@ -387,7 +396,7 @@ Try these commands with =M-x=:
 - =lsp-ivy-global-workspace-symbol= - Search for a symbol name in all
   active project workspaces
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package lsp-ivy)
 #+end_src
 
@@ -397,7 +406,7 @@ Try these commands with =M-x=:
 Emacs, intended as replacement for the older Flymake extension which
 is part of GNU Emacs.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package flycheck
     :ensure t
     :init (global-flycheck-mode))
@@ -412,7 +421,7 @@ from an IDE.
 We also use [[https://github.com/sebastiencs/company-box][company-box]] to further enhance the look of the completions
 with icons and overall presentation.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package company
     :after lsp-mode
     :hook (lsp-mode . company-mode)
@@ -431,7 +440,7 @@ with icons and overall presentation.
 [[https://projectile.mx/][Projectile]] is a project management library for Emacs which makes it a
 lot easier to navigate around code projects for various languages.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package projectile
     :diminish projectile-mode
     :config (projectile-mode)
@@ -452,7 +461,7 @@ lot easier to navigate around code projects for various languages.
 
 [[https://magit.vc/][Magit]] is the best Git interface.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package magit
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
@@ -468,7 +477,7 @@ lot easier to navigate around code projects for various languages.
 *YASnippet* is a template system for Emacs. It allows you to type an
 abbreviation and automatically expand it into a function template.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package yasnippet
     :hook (prog-mode . yas-minor-mode)
     :bind ("<backtab>" . yas-expand))
@@ -480,7 +489,7 @@ abbreviation and automatically expand it into a function template.
 
 *** C/C++
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (add-hook 'c-mode-hook 'lsp-deferred)
   (add-hook 'c++-mode-hook 'lsp-deferred)
 #+end_src
@@ -488,7 +497,7 @@ abbreviation and automatically expand it into a function template.
 * Terminals
 
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package vterm
     :commands vterm)
 #+end_src
@@ -498,7 +507,7 @@ abbreviation and automatically expand it into a function template.
 Pdfs work out of box with emacs but we have got something better so
 why not use that. 😍
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ./init.el
   (use-package pdf-tools
     :config
     (pdf-tools-install))
